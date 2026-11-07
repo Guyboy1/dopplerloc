@@ -4,7 +4,7 @@ An experimental acoustic OSINT geolocation tool that roughly figures out locatio
 
 > **Experimental software.** This is not supposed to be genuine software used to accurately locate audio recordings. It was made for fun, experimental and educational purposes. Results are candidate locations, not proof. 
 
-**New here? Install the latest release, then read `SETUP_GUIDE.md`** (step-by-step install for Windows/macOS/Linux, ffmpeg, flight-data sources, OpenSky login, troubleshooting).
+**New here? Install the latest release, unzip the file, then read `SETUP_GUIDE.md`** (step-by-step install for Windows/macOS/Linux, ffmpeg, flight-data sources, OpenSky login, troubleshooting).
 Quick version: `python -m pip install -r requirements.txt` -> `python -m dopplerloc.doctor` -> `python -m dopplerloc.web` -> http://127.0.0.1:5000
 
 ## RESPONSIBLE USE - read first
