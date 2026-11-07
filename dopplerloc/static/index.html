@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>dopplerloc</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+:root { --bg:#f6f7f9; --card:#fff; --ink:#1f2933; --muted:#6b7785; --line:#dde2e8; --accent:#2f6fed; --accent-d:#2559c4; }
+* { box-sizing: border-box; }
+body { font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg);
+       max-width: 980px; margin: 0 auto; padding: 24px 18px 40px; line-height: 1.5; }
+h1 { font-weight: 600; letter-spacing: -0.5px; margin-bottom: 4px; }
+h2 { font-size: 1.1rem; font-weight: 600; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+h3 { font-weight: 600; }
+a { color: var(--accent); }
+input, select, button { font-family: inherit; font-size: 0.95rem; }
+input[type=text], input[type=number], input:not([type]), input[type=password], select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
+input:focus, select:focus { outline: 2px solid #bcd0fa; border-color: var(--accent); }
+button { padding: 6px 14px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #fff; cursor: pointer; font-weight: 500; }
+button:hover { background: var(--accent-d); }
+details { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+summary { cursor: pointer; font-weight: 500; }
+table { border-collapse: collapse; background: var(--card); }
+td, th { border: 1px solid var(--line); padding: 4px 8px; }
+th { background: #eef1f5; font-weight: 500; }
+pre { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px; overflow: auto; }
+progress { width: 260px; height: 14px; accent-color: var(--accent); vertical-align: middle; }
+small, .note { color: var(--muted); }
+.warnbox { border: 1px solid #e0a1a1; border-left: 4px solid #c33; background: #fff3f3; padding: 10px 12px; margin: 10px 0; border-radius: 6px; white-space: pre-wrap; }
+.infobox { border: 1px solid #e6d28a; border-left: 4px solid #c90; background: #fff9e6; padding: 10px 12px; margin: 10px 0; border-radius: 6px; }
+.cov { padding: 8px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid var(--line); border-left-width: 4px; background: var(--card); }
+.cov.moderate { border-left-color: #d9a400; background: #fff9e6; }
+.cov.low { border-left-color: #c33; background: #fff3f3; }
+.cov.none { border-left-color: #9aa5b1; color: var(--muted); }
+#manual { border: 1px solid #b9cdf6; border-left: 4px solid var(--accent); background: #f3f7ff; padding: 14px 16px; margin: 14px 0; border-radius: 8px; }
+#manual h3 { margin-top: 0; color: #14305f; }
+#manual canvas { border: 1px solid #667; max-width: 100%; cursor: crosshair; background: #000; display: block; margin: 6px 0; border-radius: 4px; }
+#manual button { margin: 2px; }
+#manual input, #manual select { padding: 3px 6px; }
+#manual td, #manual th { border: 1px solid #c3cbe0; }
+#manual canvas { height: auto; }
+.badge { display: inline-block; font-size: 0.75rem; font-weight: 600; color: #166534; background: #dcfce7; border: 1px solid #86efac; border-radius: 999px; padding: 1px 9px; margin-left: 6px; vertical-align: middle; }
+#manual .hint { font-size: 1.02rem; background: #fff; border: 1px solid #b9cdf6; border-radius: 6px; padding: 7px 10px; margin: 6px 0; }
+#manual .marks { margin: 6px 0; }
+#manual .mark { display: inline-block; background: #e6f7ec; border: 1px solid #86efac; border-radius: 6px; padding: 3px 8px; margin: 2px 6px 2px 0; }
+#manual .mark.empty { background: #fff; border: 1px dashed #99a; color: #556; }
+#manual .sec { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+#manual .sugg button { background: #fff; color: #14305f; border: 1px solid #36c; }
+#manual .sugg button.star { background: #fff7d6; border-color: #d9a400; }
+#manual .secondary { background: #fff; color: #14305f; border: 1px solid #99a; }
+#manual button:disabled { opacity: .45; cursor: not-allowed; }
+#manual details { background: #fff; }
+#manual .guide svg { max-width: 100%; height: auto; display: block; margin: 6px 0; }
+#manual .guide ul { margin: 4px 0 8px 18px; padding: 0; }
+#manual .no-row svg { margin-right: 8px; display: inline-block; vertical-align: top; }
+#manual .need { background: #fff3cd; border: 1px solid #e0c36a; padding: 6px 8px; border-radius: 6px; }
+#manual .note { color: #556; font-size: 90%; }
+</style>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<h1>dopplerloc</h1>
+<div id="health"></div>
+
+<p><b>WARNING - responsible use.</b> Locating a recording can reveal where a person was. Only analyse recordings
+you made yourself, or that you have explicit permission to analyse. Do not use this tool to find, follow, or identify
+someone without their consent. Results are estimates and can be wrong.</p>
+<p><label><input type="checkbox" id="ack"> I made this recording or have permission to analyse it, and I will not use this to harm or track anyone.</label></p>
+
+<h2>1. Audio or video file</h2>
+<input type="file" id="file"> <button id="upload">Upload and read</button>
+<div id="probe"></div>
+<div id="gpswarn" class="warnbox" style="display:none"></div>
+
+<h2>2. General location</h2>
+<p>Country <select id="country"><option value="">-- choose --</option></select>
+State/region <select id="state"><option value="">(whole country)</option></select>
+City <select id="city"><option value="">(whole state)</option></select></p>
+<p>Search box (degrees) - south <input id="s" size="8"> west <input id="w" size="8"> north <input id="n" size="8"> east <input id="e" size="8">
+<span id="boxnote"></span></p>
+<p>Time zone <select id="tz"></select></p>
+<div id="cov" class="cov none" style="display:none"></div>
+
+<h2>3. When was it recorded?</h2>
+<p><label><input type="radio" name="rtype" value="cont" checked> One continuous recording (no cuts)</label>
+&nbsp; <label><input type="radio" name="rtype" value="cuts"> Edited - it has cuts</label></p>
+<p>Year <input type="number" id="year" style="width:5em"> Month
+<select id="month"><option value="">--</option></select>
+Day <select id="day"><option value="">--</option></select>
+&nbsp; Search <select id="span"></select> starting that day</p>
+<p id="timebox">Time of day:
+<label><input type="radio" name="tmode" value="any" checked> not sure</label>
+<label><input type="radio" name="tmode" value="range"> between</label> <input id="tstart" placeholder="12:00" size="6"> and <input id="tend" placeholder="13:00" size="6">
+<label><input type="radio" name="tmode" value="exact"> exact start time</label> <input id="texact" placeholder="14:05:30" size="9">
+&nbsp; clock uncertainty &plusmn; <input id="tol" size="3" value="5"> s
+&nbsp; <label><input type="checkbox" id="mdend"> the time from the file is the END of the clip</label></p>
+<p id="timenote"></p>
+
+<details><summary>Advanced</summary>
+<p>Flight data source <select id="source">
+<option value="adsblol">adsb.lol daily archive - RECOMMENDED (no account; about 3 GB per day)</option>
+<option value="file">My own file (parquet/csv)</option>
+<option value="opensky">OpenSky Network (username + password, approved access)</option></select>
+<span class="badge">recommended: adsb.lol</span></p>
+<div id="src_file" style="display:none"><p>File path <input id="flightfile" size="50" placeholder="C:\data\tracks.parquet   or   /home/me/tracks.parquet"><br>
+<small>columns: icao24, time (unix seconds), lat, lon, alt_m  (optional: typecode, is_jet)</small></p></div>
+<div id="src_adsblol"><p><small>No login. Each day's archive (about 3 GB) is downloaded from GitHub, with its parts downloading at the same time.</small></p>
+<p><label><input type="checkbox" id="lowstorage"> <b>Low storage mode</b></label>
+<small> - downloads ONE day (about 3 GB), searches it, deletes it, then moves on to the next day. Needs about 4.5 GB free instead of 3 GB per day.
+Free space now: <b id="freegb">?</b> GB.</small><br>
+<label style="margin-left:22px"><input type="checkbox" id="stopearly" checked> stop as soon as a clear winner is found (skips the remaining days)</label><br>
+<small>Without low-storage mode, downloaded days are kept in the cache folder (so a repeat run is much faster). Kept now: <b id="cachegb">0</b> GB
+<button type="button" class="secondary" id="clearcache" style="padding:2px 10px">Delete downloaded flight data</button></small></p></div>
+<div id="src_opensky" style="display:none"><p>OpenSky <b>username</b> <input id="osuser" size="20" autocomplete="off"> <b>password</b> <input id="ospass" type="password" size="20" autocomplete="off"><br>
+<small>This is your normal OpenSky account login - <b>not an API key</b> (the "API client" id/secret on the Account page is for live data and is not used here).
+Historical access ("Trino") must be requested at opensky-network.org/my-opensky/request-data and is mainly granted to researchers, government and
+aviation authorities; until it is approved, the login fails. No account? Use the adsb.lol source instead. The login typed here is used for this run only
+and is not saved. If left empty, pyopensky uses its own settings.conf / environment variables / a browser login. See SETUP_GUIDE.md, section "OpenSky".</small></p></div>
+<p>Elevation data <select id="dem"><option value="auto">Automatic (AWS terrain tiles)</option><option value="flat">None (flat ground)</option></select>
+or GeoTIFF path <input id="demfile" size="30"></p>
+<p>Air temperature (C) <input id="temp" size="4" value="20"> Worker processes <input id="workers" size="3" value="1"></p>
+<p><label><input type="checkbox" id="always"> Always let me choose the events and trace curves myself</label></p>
+<p>Tolerances: speed <input id="p_speed" size="4" value="0.30"> distance <input id="p_dist" size="4" value="0.40"> time offset between curves (s) <input id="p_off" size="4" value="8"></p>
+</details>
+
+<p><button id="start">Start</button> <span id="startnote"></span></p>
+
+<h2>Progress</h2>
+<progress id="bar" max="100" value="0"></progress> <span id="pct"></span>
+<div id="eta" style="margin:4px 0"></div><div id="dlinfo" class="note"></div>
+<ol id="steps"></ol>
+<p id="error"></p>
+<div id="manual"></div>
+<div id="result"></div>
+<pre id="log"></pre>
+
+<footer id="credits" class="note" style="margin-top:36px;padding-top:12px;border-top:1px solid var(--line);font-size:.85rem">
+<p><b>Experimental.</b> Results are unverified candidates, not proof of where a recording was made. Runs on your computer; your recording is not uploaded anywhere.
+Uploaded recordings stay in your cache folder until deleted: <span id="nuploads">0</span> file(s) <button type="button" class="secondary" id="clearuploads" style="padding:2px 10px">Delete my uploaded recordings</button></p>
+<p>Credits: flight data from <a href="https://www.adsb.lol/docs/open-data/historical/" target="_blank">adsb.lol</a> (ODbL 1.0) and its feeders, or from
+<a href="https://opensky-network.org" target="_blank">OpenSky Network</a>; places from
+<a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank">dr5hn</a> (ODbL) and <a href="https://www.geonames.org" target="_blank">GeoNames</a> (CC BY 4.0);
+terrain from <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank">Terrain Tiles on AWS</a> (USGS 3DEP, SRTM and GMTED data courtesy of the U.S. Geological Survey; Copernicus EU-DEM; other national sources, see NOTICE);
+map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>, <a href="https://leafletjs.com" target="_blank">Leaflet</a>; font Inter (SIL OFL). Full list: NOTICE file.</p>
+</footer>
+<script>
+const $ = id => document.getElementById(id);
+const api = (u, opt) => fetch(u, opt).then(r => r.json());
+let fileId = null, jobId = null, lastSeq = 0, theMap = null;
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+MONTHS.forEach((m, i) => $("month").add(new Option(m, i + 1)));
+for (let d = 1; d <= 31; d++) $("day").add(new Option(d, d));
+for (let d = 1; d <= 7; d++) $("span").add(new Option(d === 1 ? "1 day" : d + " days", d));
+$("year").value = new Date().getFullYear();
+function opts(sel, items, first) { sel.length = first ? 1 : 0; items.forEach(x => sel.add(new Option(x[0], x[1]))); }
+function setTZ(list, pick) { opts($("tz"), list.map(t => [t, t])); if (pick) $("tz").value = pick; }
+
+/* ---------- setup problems (ffmpeg missing etc.) ---------- */
+api("/api/health").then(h => {
+  if (!h.ffmpeg) $("health").innerHTML = '<div class="warnbox"><b>Setup problem:</b> ' + (h.message || "ffmpeg not found") + "</div>";
+});
+
+/* ---------- location ---------- */
+const COVTAG = {moderate: " (moderate coverage)", low: " (low coverage)"};
+api("/api/places/countries").then(l => opts($("country"), l.map(c => [c.name + (COVTAG[c.coverage] || ""), c.code]), true));
+let covTimer = null;
+async function cov() {
+  const c = $("country").value, box = $("cov");
+  if (!c) { box.style.display = "none"; return; }
+  const q = new URLSearchParams({country: c, s: $("s").value, w: $("w").value, n: $("n").value, e: $("e").value});
+  const r = await api("/api/coverage?" + q);
+  box.style.display = "block"; box.className = "cov " + r.level;
+  box.innerHTML = r.level === "none" ? "No coverage warning is listed for this area (that is not a guarantee that flight data exists)." :
+    `<b>${r.label}${r.area ? " - " + r.area : ""}.</b> ${r.reason} <br><small>If nothing matches, the cause may be missing flight data rather than the recording. OpenSky sometimes has more than adsb.lol here.</small>`;
+}
+["s", "w", "n", "e"].forEach(id => $(id).addEventListener("input", () => { clearTimeout(covTimer); covTimer = setTimeout(cov, 400); }));
+async function resolve() {
+  const c = $("country").value; if (!c) return;
+  const q = new URLSearchParams({country: c, state: $("state").value, city: $("city").value});
+  const r = await api("/api/places/resolve?" + q);
+  if (r.error) { $("boxnote").textContent = r.error; return; }
+  [$("s").value, $("w").value, $("n").value, $("e").value] = r.bbox.map(v => (+v).toFixed(3));
+  $("boxnote").textContent = " (" + r.note + ")";
+  setTZ(r.timezones, r.timezones[0]);
+  cov();
+}
+$("country").onchange = async () => {
+  opts($("state"), (await api("/api/places/states?country=" + $("country").value)).map(s => [s.name, s.id]), true);
+  opts($("city"), [], true); await resolve();
+};
+$("state").onchange = async () => {
+  const c = $("country").value, s = $("state").value;
+  opts($("city"), (await api(`/api/places/cities?country=${c}&state=${s}`)).map(x => [x.name, x.name]), true); await resolve();
+};
+$("city").onchange = resolve;
+
+/* ---------- time rules ---------- */
+const hmOK = s => /^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test((s || "").trim());
+const tmode = () => document.querySelector("input[name=tmode]:checked").value;
+const cuts = () => document.querySelector("input[name=rtype]:checked").value === "cuts";
+function timeUI() {
+  if (cuts()) document.querySelector("input[name=tmode][value=exact]").checked = true;
+  document.querySelectorAll("input[name=tmode]").forEach(r => r.disabled = cuts() && r.value !== "exact");
+  let t;
+  if (cuts()) t = "Recording with cuts: enter the START time (to the minute or second). After the curves are found you will be asked for the real clock time at each curve, because cuts break the time between them.";
+  else if (tmode() === "exact") t = "Exact start time: one clear Doppler curve is enough (a second one makes the result much tighter). Clock uncertainty " + $("tol").value + " s.";
+  else t = "Start time not exact: the search only continues if at least TWO Doppler curves are found. A day (or up to 7 days) is enough. Enter the exact start time to use a single curve.";
+  $("timenote").textContent = t;
+}
+document.querySelectorAll("input[name=tmode],input[name=rtype]").forEach(r => r.onchange = timeUI);
+["tol", "texact"].forEach(id => $(id).oninput = timeUI);
+timeUI();
+
+/* ---------- data source ---------- */
+$("source").onchange = () => { ["file", "adsblol", "opensky"].forEach(k => $("src_" + k).style.display = $("source").value === k ? "block" : "none"); };
+
+/* ---------- upload + metadata ---------- */
+$("upload").onclick = async () => {
+  const f = $("file").files[0]; if (!f) { alert("Choose a file first"); return; }
+  $("probe").textContent = "Uploading..."; $("gpswarn").style.display = "none";
+  const fd = new FormData(); fd.append("file", f);
+  const r = await api("/api/upload", {method: "POST", body: fd});
+  if (r.error) { $("probe").textContent = "Error: " + r.error; return; }
+  fileId = r.file_id;
+  const m = r.metadata, p = r.prefill;
+  let msg = `${r.name}: ${Math.round(r.duration)} s of audio (metadata read with ${r.tool}).`;
+  if (m.lat !== undefined) msg += " Found coordinates in the file.";
+  else if (m.place_hints) msg += " Found a place name in the file: " + Object.values(m.place_hints).join(", ") + ".";
+  if (m.time_source) msg += ` Time clue: ${m.time_source} (${m.time_confidence} confidence).`;
+  if (m.device) msg += " Device: " + m.device + ".";
+  if (m.lat === undefined && !m.place_hints && !m.time_source) msg += " No location or time found in the metadata (messaging apps and editors usually strip it).";
+  $("probe").textContent = msg + (Object.keys(p).length ? " The boxes below were filled in from it - check them." : "");
+  if (m.lat !== undefined) {
+    $("gpswarn").style.display = "block";
+    $("gpswarn").innerHTML = `<b>Location is already viewable from the file's metadata:</b> ${m.lat.toFixed(6)}, ${m.lon.toFixed(6)} (${m.gps_source}). ` +
+      `<a target="_blank" href="https://www.google.com/maps?q=${m.lat},${m.lon}">open in Google Maps</a>. You may not need this tool. (Metadata can be wrong or edited.)`;
+  }
+  if (p.country) {
+    $("country").value = p.country; await $("country").onchange();
+    if (p.state_id !== undefined && p.state_id !== null) { $("state").value = p.state_id; await $("state").onchange(); }
+    if (p.city) { $("city").value = p.city; if ($("city").value !== p.city) $("city").value = ""; }
+    if (p.bbox) {
+      [$("s").value, $("w").value, $("n").value, $("e").value] = p.bbox.map(v => (+v).toFixed(4));
+      $("boxnote").textContent = ` (from the file's coordinates, about 20 km square; nearest listed city ${p.nearest_km} km away)`;
+      cov();
+    }
+  }
+  if (p.tz) { if (![...$("tz").options].some(o => o.value === p.tz)) $("tz").add(new Option(p.tz, p.tz)); $("tz").value = p.tz; }
+  if (p.year) {
+    $("year").value = p.year; $("month").value = p.month; $("day").value = p.day;
+    $("texact").value = p.exact; document.querySelector("input[name=tmode][value=exact]").checked = true;
+    $("tol").value = p.time_tolerance_s; timeUI();
+    $("timenote").textContent += ` (Filled from: ${p.time_source}, ${p.time_confidence} confidence. Not sure it marks the START? Tick "the time from the file is the END" if it is the end of the clip.)`;
+  }
+};
+
+/* ---------- start ---------- */
+$("start").onclick = async () => {
+  const body = {
+    ack: $("ack").checked, file_id: fileId, low_storage: $("lowstorage").checked, stop_early: $("stopearly").checked, country: $("country").value, bbox: [$("s").value, $("w").value, $("n").value, $("e").value].map(Number),
+    tz: $("tz").value, year: $("year").value, month: $("month").value, day: $("day").value, span_days: $("span").value,
+    cuts: cuts(), tolerance_s: $("tol").value, metadata_end: $("mdend").checked,
+    source: $("source").value, flight_file: $("flightfile").value, dem: $("demfile").value || $("dem").value,
+    opensky_user: $("osuser").value, opensky_pass: $("ospass").value,
+    temp_c: $("temp").value, workers: $("workers").value, always_manual: $("always").checked,
+    params: {speed_tol: +$("p_speed").value, dist_tol: +$("p_dist").value, offset_tol_s: +$("p_off").value}
+  };
+  if (tmode() === "exact") body.exact = $("texact").value;
+  else if (tmode() === "range") { body.start = $("tstart").value; body.end = $("tend").value; }
+  const missing = [];
+  if (!body.ack) missing.push("tick the permission box");
+  if (!fileId) missing.push("upload a file");
+  if (!$("country").value) missing.push("choose a country");
+  if (!body.year || !body.month || !body.day) missing.push("enter year, month and day");
+  if ((cuts() || tmode() === "exact") && !hmOK($("texact").value)) missing.push("enter the exact start time as HH:MM or HH:MM:SS");
+  if (tmode() === "range" && !(hmOK($("tstart").value) && hmOK($("tend").value))) missing.push("enter the time range as HH:MM");
+  if ($("source").value === "file" && !$("flightfile").value) missing.push("give the flight-data file path (Advanced)");
+  if (missing.length) { $("startnote").textContent = "Please " + missing.join(", ") + "."; return; }
+  $("startnote").textContent = ""; $("result").innerHTML = ""; $("error").textContent = "";
+  const r = await api("/api/start", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  if (r.error) { $("startnote").textContent = r.error; return; }
+  jobId = r.job_id; lastSeq = 0; $("ospass").value = ""; poll();
+};
+
+/* ---------- progress ---------- */
+const fmtDur = s => s < 45 ? "less than a minute" : s < 5400 ? "about " + Math.round(s / 60) + " min" : "about " + Math.floor(s / 3600) + " h " + Math.round((s % 3600) / 60) + " min";
+const fmtB = b => b >= 1e9 ? (b / 1e9).toFixed(2) + " GB" : (b / 1e6).toFixed(0) + " MB";
+function showTiming(j) {
+  if (j.status === "done" || j.status === "error") { $("eta").innerHTML = j.status === "done" ? "Finished in " + mmss(j.elapsed_s) + "." : ""; $("dlinfo").textContent = ""; return; }
+  let t = "";
+  if (j.waiting) t = "Waiting for you (this waiting time is not counted). Elapsed: " + mmss(j.elapsed_s);
+  else if (j.eta_s === null || j.eta_s === undefined) t = "Estimating time left... Elapsed: " + mmss(j.elapsed_s);
+  else t = "<b>" + fmtDur(j.eta_s) + " left</b>" + (j.eta_rough ? " (rough guess until the real download speed is measured)" : (j.eta_search_guess ? " (the search part is a guess until the first search has run)" : "")) + " &middot; elapsed " + mmss(j.elapsed_s);
+  $("eta").innerHTML = "&#9201; " + t;
+  const d = j.dl;
+  $("dlinfo").textContent = d ? `Flight data: ${fmtB(d.done)} of about ${fmtB(d.total)} downloaded` + (d.speed ? ` at ${(d.speed / 1e6).toFixed(1)} MB/s` : "") +
+    (d.scan_speed ? `; reading at ${(d.scan_speed / 1e6).toFixed(1)} MB/s` : "") + ". The time left follows these speeds." : "";
+}
+async function refreshDisk() {
+  try {
+    const h = await api("/api/health");
+    $("freegb").textContent = h.free_gb; $("cachegb").textContent = h.cache_gb; $("nuploads").textContent = h.uploads;
+    $("freegb").style.color = h.free_gb < 8 ? "#c33" : "";
+    if (h.free_gb < 8 && !$("lowstorage").dataset.touched) $("lowstorage").checked = true;
+  } catch (e) {}
+}
+$("lowstorage").addEventListener("change", () => { $("lowstorage").dataset.touched = "1"; });
+$("clearcache").onclick = async () => {
+  if (!confirm("Delete all downloaded flight-data archives? They are downloaded again the next time they are needed.")) return;
+  const r = await (await fetch("/api/cache/clear", {method: "POST"})).json();
+  alert("Freed " + r.freed_gb + " GB."); refreshDisk();
+};
+$("clearuploads").onclick = async () => {
+  if (!confirm("Delete all recordings you uploaded to dopplerloc? (Your original files are not touched.)")) return;
+  const r = await (await fetch("/api/uploads/clear", {method: "POST"})).json();
+  fileId = null; alert("Deleted " + r.deleted + " file(s). Choose your recording again before the next run."); refreshDisk();
+};
+refreshDisk();
+async function poll() {
+  const j = await api("/api/job/" + jobId);
+  $("bar").value = j.percent; $("pct").textContent = j.percent + "%";
+  showTiming(j);
+  $("steps").innerHTML = j.steps.map(s => `<li>${s.name}: <b>${s.state}</b> ${s.msg || ""}</li>`).join("");
+  $("log").textContent = j.logs.join("\n");
+  if (j.manual && j.manual.seq !== lastSeq) { lastSeq = j.manual.seq; showManual(j.manual); }
+  if (!j.manual) $("manual").innerHTML = "";
+  if (j.status === "error") { $("error").textContent = "Error: " + j.error; return; }
+  if (j.status === "done") { showResult(j.result); return; }
+  setTimeout(poll, 1000);
+}
+const send = obj => { $("manual").innerHTML = ""; return fetch(`/api/job/${jobId}/manual`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(obj)}); };
+
+/* ---------- spectrogram canvases ---------- */
+const LOOK = {calm: {vmin: 3, vmax: 16, smooth: 1.2}, detail: {vmin: 1, vmax: 18, smooth: 0}};
+const lookNow = () => LOOK[(document.querySelector("input[name=look]:checked") || {value: "calm"}).value];
+const mmss = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+async function loadImg(canvas, q) {
+  const r = await fetch(`/api/job/${jobId}/img?` + new URLSearchParams(q));
+  if (!r.ok) { alert((await r.json()).error); return null; }
+  const meta = JSON.parse(r.headers.get("X-Meta"));
+  const img = new Image();
+  const done = new Promise(res => { img.onload = res; });
+  img.src = URL.createObjectURL(await r.blob());
+  await done;
+  canvas.width = img.width; canvas.height = img.height;
+  canvas.getContext("2d").drawImage(img, 0, 0);
+  return {meta, img};
+}
+/* canvas pixel -> [time, pitch]; null when the click is outside the picture (on the axes) */
+const px2data = (m, cv, ev) => {
+  const b = cv.getBoundingClientRect(), x = (ev.clientX - b.left) * cv.width / b.width - m.ml, y = (ev.clientY - b.top) * cv.height / b.height - m.mt;
+  if (x < 0 || y < 0 || x > m.w - 1 || y > m.h - 1) return null;
+  return [m.t0 + x / (m.w - 1) * (m.t1 - m.t0), m.f1 - y / (m.h - 1) * (m.f1 - m.f0)];
+};
+const d2c = (m, t, f) => [m.ml + (t - m.t0) / (m.t1 - m.t0) * (m.w - 1), m.mt + (1 - (f - m.f0) / (m.f1 - m.f0)) * (m.h - 1)];
+function box(g, m, win, band, color, label, dash) {
+  const [x0, y0] = d2c(m, win[0], band[1]), [x1, y1] = d2c(m, win[1], band[0]);
+  g.save(); g.strokeStyle = color; g.lineWidth = 2.5; g.setLineDash(dash ? [7, 5] : []); g.strokeRect(x0, y0, x1 - x0, y1 - y0); g.restore();
+  if (label) { g.fillStyle = color; g.font = "bold 16px sans-serif"; g.fillText(label, x0 + 4, y0 + 17); }
+}
+const LOOKHTML = '<label><input type="radio" name="look" value="calm" checked> Calm (easiest to read)</label> <label><input type="radio" name="look" value="detail"> Detailed (shows faint things)</label>';
+const RES = '<select id="vres"><option value="med">standard</option><option value="high">high</option><option value="max">maximum (faint curves)</option></select>';
+
+/* ---------- the guide ---------- */
+function guideHTML(open) {
+  const P = '<svg viewBox="0 0 560 215" width="560" role="img" aria-label="Sketch of a Doppler curve on a spectrogram">' +
+    '<rect width="560" height="215" rx="8" fill="#0b0b1c"/>' +
+    '<path d="M60 40 C190 40 225 55 262 100 C300 143 350 156 520 156" fill="none" stroke="#ffd34d" stroke-width="3.5"/>' +
+    '<path d="M60 22 C190 22 225 38 262 78 C300 122 350 134 520 134" fill="none" stroke="#c0407a" stroke-width="2" opacity=".75"/>' +
+    '<path d="M60 56 C190 56 225 65 262 108 C300 150 350 170 520 170" fill="none" stroke="#7a3fb0" stroke-width="1.5" opacity=".6"/>' +
+    '<text x="62" y="205" fill="#ccd" font-size="12">time (left to right)</text>' +
+    '<text x="12" y="14" fill="#ccd" font-size="12">pitch (up)</text>' +
+    '<text x="70" y="82" fill="#fff" font-size="12">plane approaching:</text><text x="70" y="97" fill="#fff" font-size="12">pitch is HIGH, nearly level</text>' +
+    '<text x="285" y="62" fill="#fff" font-size="12">plane passes you:</text><text x="285" y="77" fill="#fff" font-size="12">pitch DROPS fastest here</text>' +
+    '<text x="380" y="118" fill="#fff" font-size="12">plane leaving:</text><text x="380" y="133" fill="#fff" font-size="12" opacity="0">.</text>' +
+    '<text x="395" y="186" fill="#fff" font-size="12">pitch is LOW, nearly level</text>' +
+    '<text x="508" y="40" fill="#fbd" font-size="11" text-anchor="end">fainter copies of the same shape</text>' +
+    '<text x="508" y="52" fill="#fbd" font-size="11" text-anchor="end">above/below are normal</text></svg>';
+  const flat = '<svg viewBox="0 0 150 80" width="150"><rect width="150" height="80" rx="6" fill="#0b0b1c"/><g stroke="#e6c34f" stroke-width="2"><line x1="8" y1="20" x2="142" y2="20"/><line x1="8" y1="42" x2="142" y2="42"/><line x1="8" y1="62" x2="142" y2="62"/></g></svg>';
+  const vert = '<svg viewBox="0 0 150 80" width="150"><rect width="150" height="80" rx="6" fill="#0b0b1c"/><g stroke="#e6c34f" stroke-width="2"><line x1="25" y1="6" x2="25" y2="74"/><line x1="60" y1="10" x2="60" y2="70"/><line x1="115" y1="4" x2="115" y2="76"/></g></svg>';
+  const cloud = '<svg viewBox="0 0 150 80" width="150"><rect width="150" height="80" rx="6" fill="#0b0b1c"/><ellipse cx="75" cy="40" rx="55" ry="26" fill="#a0509a" opacity=".55"/><ellipse cx="60" cy="38" rx="30" ry="14" fill="#d98a6a" opacity=".5"/></svg>';
+  return `<details class="guide" ${open ? "open" : ""}><summary><b>How to spot an aircraft (Doppler) curve - read this first</b></summary>
+  <p>The picture below is a <b>spectrogram</b>: time runs left to right, pitch runs bottom to top, and <b>brighter = louder</b>.
+  As a plane flies past you, the pitch of its engine sound <b>slides down</b>, because it is rising in pitch while it comes towards you and falling once it has passed. On the picture that makes a thin, bright, smooth line like this:</p>
+  ${P}
+  <p><b>What to look for</b></p>
+  <ul><li>A <b>thin bright line that slopes downward</b> from upper left to lower right, nearly level at both ends and <b>steepest in the middle</b> (a lazy "S" or a slide).</li>
+  <li>It lasts <b>tens of seconds</b>, and is usually brightest at the steep part. The ends can be faint.</li>
+  <li>Often there are <b>several copies of the same shape</b> stacked above each other (harmonics). That is a good sign.</li>
+  <li>Engine <b>whine and propeller hum</b> show up best. Jets can appear as a wider, fuzzier slide.</li></ul>
+  <p><b>What it is NOT</b></p>
+  <div class="no-row">${flat}${vert}${cloud}</div>
+  <ul><li><b>Perfectly flat lines</b> (left): constant machinery, fridges, air conditioning. They never slide.</li>
+  <li><b>Straight up-and-down streaks</b> (middle): claps, door slams, speech, gusts of wind. They are short and last a moment.</li>
+  <li><b>Fuzzy clouds with no clear line</b> (right): wind, rain, traffic. Skip those.</li>
+  <li>Lines that go up and down repeatedly are sirens, music or birds, not an aircraft.</li></ul>
+  <p><b>Tips</b></p>
+  <ul><li>Go through the recording <b>one section at a time</b> (the buttons below). You are only looking for a few bright falling lines.</li>
+  <li>Start with <b>Calm</b>; switch to <b>Detailed</b> if you cannot see anything.</li>
+  <li>If you are unsure, pick the <b>brightest</b> candidates. You can always mark a different one.</li></ul></details>`;
+}
+
+function showManual(m) {
+  const div = $("manual");
+  if (m.kind === "confirm") {
+    div.innerHTML = `<h3>Please confirm</h3><p>${m.message}</p><button id="yes">Continue</button> <button id="no">Stop</button>`;
+    $("yes").onclick = () => send({ok: true}); $("no").onclick = () => send({cancel: true});
+  } else if (m.kind === "events") showEvents(m);
+  else if (m.kind === "trace") showTrace(m);
+  else if (m.kind === "curve_times") showCurveTimes(m);
+  else if (m.kind === "review") showReview(m);
+}
+
+/* ---------- manual step 1: pick the aircraft, one section at a time ---------- */
+function catText(m) {
+  const c = m.category || (m.need === 2 ? "two" : "exact");
+  if (c === "exact") return "<b>You gave an exact start time, so ONE clear aircraft is enough.</b> A second one makes the result tighter, but is optional.";
+  if (c === "cuts") return "<b>Your recording has cuts.</b> Mark at least ONE aircraft (two is better). Afterwards you will be asked for the real clock time of each one.";
+  return "<b>You gave the day but not an exact start time, so you need to mark TWO different aircraft.</b> (If you do know the exact start time, type it in the box below and one aircraft is enough.)";
+}
+function showEvents(m) {
+  const div = $("manual"), D = Math.max(10, m.duration), SEC = Math.min(D, 120), FMAX = Math.min(500, Math.round(m.fmax));
+  const cands = (m.candidates && m.candidates.length ? m.candidates : (m.suggestions || []).map(s => ({win: s.win, strong: true}))).slice();
+  div.innerHTML = `<h3>Find the aircraft in your recording</h3>
+  <p class="need">${catText(m)}</p>
+  ${m.reason ? `<p class="note">${m.reason}</p>` : ""}
+  ${guideHTML(true)}
+  <div class="marks" id="marks"></div>
+  <div class="sec"><button class="secondary" id="prev">&#9664; Previous section</button> <b id="seclabel"></b> <button class="secondary" id="next">Next section &#9654;</button>
+    <span>&nbsp; ${LOOKHTML}</span></div>
+  ${cands.length ? `<div class="sugg" id="sugg">Places where the program thinks something may be (<span style="background:#fff7d6">&#9733; = strongest</span>) - check each one: <span id="suggbtns"></span></div>` : ""}
+  <canvas id="cv"></canvas><div class="note" id="readout">&nbsp;</div>
+  <p class="hint" id="hint"></p><div id="actions"></div>
+  <details><summary>More view options (zoom, pitch range, resolution)</summary>
+  <p>Time <input id="vt0" size="6"> to <input id="vt1" size="6"> s, pitch <input id="vf0" size="5" value="40"> to <input id="vf1" size="5" value="${FMAX}"> Hz,
+  resolution ${RES} <button class="secondary" id="redraw">Redraw</button></p></details>
+  ${m.allow_exact ? `<details><summary>I know the exact start time of the recording (then one aircraft is enough)</summary>
+  <p>Exact start time <input id="exactx" size="9" placeholder="14:05:30"> &plusmn; <input id="tolx" size="3" value="${$("tol").value}"> s</p></details>` : ""}
+  <p><button id="go">Done - use these</button> <button class="secondary" id="stop">Stop</button> <span id="gonote" class="note"></span></p>`;
+  const cv = $("cv"); let view = null, marks = [], clicks = [], cur = null, secStart = 0;
+  const bandFor = (a, b) => [Math.max(15, Math.min(a, b) - 25), Math.min(m.fmax, Math.max(a, b) + 25)];
+  const enough = () => marks.length >= m.need || (m.allow_exact && marks.length >= 1 && $("exactx") && $("exactx").value.trim() !== "");
+  const winLabel = w => `${mmss(w[0])} - ${mmss(w[1])}`;
+  function refresh() {
+    $("marks").innerHTML = (marks.map((k, i) => `<span class="mark"><b>Aircraft ${i + 1}:</b> ${winLabel(k.win)} <button class="secondary" data-show="${i}">show</button> <button class="secondary" data-del="${i}">remove</button></span>`).join("") +
+      (marks.length < 2 ? `<span class="mark empty">Aircraft ${marks.length + 1}: not marked yet${marks.length >= m.need ? " (optional)" : ""}</span>` : ""));
+    $("marks").querySelectorAll("[data-del]").forEach(b => b.onclick = () => { marks.splice(+b.dataset.del, 1); refresh(); paint(); });
+    $("marks").querySelectorAll("[data-show]").forEach(b => b.onclick = () => { const k = marks[+b.dataset.show]; jump(Math.max(0, k.win[0] - 15), Math.min(D, k.win[1] + 15)); });
+    let hint = "", act = "";
+    if (marks.length >= 2) hint = "Both aircraft are marked. Press <b>Done</b> (or remove one to pick a different one).";
+    else if (cur && clicks.length === 0) {
+      hint = "The yellow dashed box is what the program found. <b>Does it look like a bright line sliding downward?</b> If yes, accept it. If not, try the next suggestion, or click the curve yourself.";
+      act = '<button id="accept">&#10004; Yes, this is an aircraft - use it</button> <button class="secondary" id="reject">No, this is not one</button>';
+    } else if (clicks.length === 0) hint = "Do you see a bright line sliding downward? <b>Click on the LEFT end of it</b> (where it starts, usually higher up). If you see nothing, use <b>Next section</b>.";
+    else if (clicks.length === 1) hint = "Now <b>click on the RIGHT end</b> of the same line (where it fades out, usually lower down).";
+    else {
+      hint = "Happy with the green box around the line?";
+      act = `<button id="save">&#10004; Save as aircraft ${marks.length + 1}</button> <button class="secondary" id="redo">Redo my clicks</button>`;
+    }
+    $("hint").innerHTML = hint; $("actions").innerHTML = act;
+    if ($("accept")) { $("accept").onclick = () => addMark(cur.win.slice(), [60, Math.min(m.fmax, 500)]); $("reject").onclick = () => { cur = null; refresh(); paint(); }; }
+    if ($("save")) $("save").onclick = () => addMark([Math.min(clicks[0][0], clicks[1][0]), Math.max(clicks[0][0], clicks[1][0])], bandFor(clicks[0][1], clicks[1][1]));
+    if ($("redo")) $("redo").onclick = () => { clicks = []; refresh(); paint(); };
+    const ok = enough();
+    $("go").disabled = !ok;
+    $("gonote").textContent = ok ? "" : (m.need === 2 ? `Mark ${m.need - marks.length} more aircraft, or enter the exact start time (More options below).` : "Mark at least one aircraft first.");
+  }
+  function addMark(win, band) { if (marks.length >= 2) return; marks.push({win, band}); clicks = []; cur = null; refresh(); paint(); }
+  function paint() {
+    if (!view) return;
+    const g = cv.getContext("2d"), mt = view.meta; g.drawImage(view.img, 0, 0);
+    marks.forEach((k, i) => { if (k.win[1] > mt.t0 && k.win[0] < mt.t1) box(g, mt, k.win, k.band, "#3ddc84", "Aircraft " + (i + 1)); });
+    if (cur) box(g, mt, cur.win, [mt.f0 + 15, mt.f1 - 5], "#ffd34d", "found by the program", true);
+    if (clicks.length) {
+      g.fillStyle = "#3ddc84"; clicks.forEach(c => { const [x, y] = d2c(mt, c[0], c[1]); g.beginPath(); g.arc(x, y, 6, 0, 7); g.fill(); });
+      if (clicks.length === 2) box(g, mt, [Math.min(clicks[0][0], clicks[1][0]), Math.max(clicks[0][0], clicks[1][0])], bandFor(clicks[0][1], clicks[1][1]), "#3ddc84", "");
+    }
+  }
+  async function draw() {
+    const v = await loadImg(cv, {t0: $("vt0").value, t1: $("vt1").value, f0: $("vf0").value, f1: $("vf1").value, w: 1100, h: 420, res: $("vres").value, ...lookNow()});
+    if (v) { view = v; paint(); }
+    const a = +$("vt0").value, b = +$("vt1").value;
+    $("seclabel").textContent = `Showing ${mmss(a)} - ${mmss(b)} of ${mmss(D)}`;
+    $("prev").disabled = a <= 0.5; $("next").disabled = b >= D - 0.5;
+  }
+  function jump(a, b) { $("vt0").value = a.toFixed(1); $("vt1").value = b.toFixed(1); clicks = []; refresh(); draw(); }
+  const section = k => { secStart = Math.max(0, Math.min(D - SEC, k)); cur = null; jump(secStart, Math.min(D, secStart + SEC)); };
+  $("prev").onclick = () => section(+$("vt0").value - SEC * 0.85);
+  $("next").onclick = () => section(+$("vt0").value + SEC * 0.85);
+  $("redraw").onclick = $("vres").onchange = () => { clicks = []; refresh(); draw(); };
+  document.querySelectorAll("input[name=look]").forEach(r => r.onchange = () => draw());
+  if ($("exactx")) $("exactx").oninput = refresh;
+  if ($("suggbtns")) {
+    cands.forEach((c, i) => {
+      const b = document.createElement("button"); b.className = c.strong ? "star" : "";
+      b.textContent = (c.strong ? "\u2605 " : "") + winLabel(c.win); $("suggbtns").appendChild(b); b.after(" ");
+      b.onclick = () => { cur = {win: c.win}; clicks = []; refresh(); jump(Math.max(0, c.win[0] - 15), Math.min(D, c.win[1] + 15)); };
+    });
+  }
+  cv.onmousemove = ev => { if (!view) return; const p = px2data(view.meta, cv, ev); $("readout").textContent = p ? `time ${p[0].toFixed(1)} s (${mmss(p[0])}), pitch ${p[1].toFixed(0)} Hz` : "\u00a0"; };
+  cv.onclick = ev => {
+    if (!view || marks.length >= 2 || clicks.length >= 2) return;
+    const p = px2data(view.meta, cv, ev); if (!p) return;
+    clicks.push(p); cur = null; refresh(); paint();
+  };
+  $("go").onclick = () => {
+    const body = {events: marks.map(k => ({win: k.win, band: k.band}))};
+    if (m.allow_exact && $("exactx") && $("exactx").value.trim() && marks.length === 1) { body.exact = $("exactx").value.trim(); body.tolerance = +$("tolx").value; }
+    send(body);
+  };
+  $("stop").onclick = () => send({cancel: true});
+  refresh();
+  if (cands.length) { const c = cands.find(x => x.strong) || cands[0]; cur = {win: c.win}; refresh(); jump(Math.max(0, c.win[0] - 15), Math.min(D, c.win[1] + 15)); }
+  else section(0);
+}
+
+/* ---------- manual step 2: trace one curve ---------- */
+function showTrace(m) {
+  const div = $("manual");
+  const why = m.auto === false ? "You chose to trace the curves by hand." : `The program could not measure this curve reliably (${m.reason}).`;
+  div.innerHTML = `<h3>Trace the curve of aircraft ${m.index}</h3><p class="note">${why}</p>
+  <p class="hint"><b>Click along the bright line, from its left end to its right end</b> - at least 5 clicks, about 10 is better, with a few extra where it bends.
+  Each click should sit on the line. Made a mistake? Use Undo.</p>
+  <div class="sec">${LOOKHTML} &nbsp; Resolution ${RES}</div>
+  <canvas id="cv"></canvas><div class="note" id="readout">&nbsp;</div>
+  <p><span id="npts">0</span> points. <button class="secondary" id="undo">Undo last</button> <button class="secondary" id="clear">Clear all</button>
+  <button id="go">Use my points</button> ${m.can_skip ? '<button class="secondary" id="skip">Skip this curve (the other one is enough)</button> ' : ""}<button class="secondary" id="stop">Stop</button></p>
+  <details><summary>Or let the program try again with a different time window / pitch range</summary>
+  <p>time <input id="wa" size="6" value="${m.win[0].toFixed(0)}"> to <input id="wb" size="6" value="${m.win[1].toFixed(0)}"> s, pitch <input id="fa" size="5" value="${m.band[0]}"> to <input id="fb" size="5" value="${m.band[1]}"> Hz <button class="secondary" id="retry">Retry</button></p></details>`;
+  const cv = $("cv"); let view = null, pts = [];
+  const paint = () => { if (!view) return; const g = cv.getContext("2d"); g.drawImage(view.img, 0, 0); g.fillStyle = "#3ddc84";
+    pts.forEach(p => { const [x, y] = d2c(view.meta, p[0], p[1]); g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }); $("npts").textContent = pts.length; };
+  const redraw = async () => { const v = await loadImg(cv, {t0: m.win[0], t1: m.win[1], f0: m.band[0], f1: m.band[1], w: 1100, h: 450, res: $("vres").value, ...lookNow()}); if (v) { view = v; paint(); } };
+  cv.onclick = ev => { if (!view) return; const p = px2data(view.meta, cv, ev); if (p) { pts.push(p); paint(); } };
+  cv.onmousemove = ev => { if (!view) return; const p = px2data(view.meta, cv, ev); $("readout").textContent = p ? `time ${p[0].toFixed(1)} s, pitch ${p[1].toFixed(0)} Hz` : "\u00a0"; };
+  $("vres").onchange = redraw; document.querySelectorAll("input[name=look]").forEach(r => r.onchange = redraw);
+  $("undo").onclick = () => { pts.pop(); paint(); }; $("clear").onclick = () => { pts = []; paint(); };
+  $("go").onclick = () => pts.length < 5 ? alert("Click at least 5 points") : send({points: pts.map(p => [p[0], p[1]])});
+  $("retry").onclick = () => send({win: [+$("wa").value, +$("wb").value], band: [+$("fa").value, +$("fb").value]});
+  if (m.can_skip) $("skip").onclick = () => send({skip: true});
+  $("stop").onclick = () => send({cancel: true});
+  redraw();
+}
+
+function showCurveTimes(m) {
+  const div = $("manual");
+  div.innerHTML = `<h3>Recording with cuts: what was the real clock time at each curve?</h3>
+  ${m.reason ? `<p class="need">${m.reason}</p>` : ""}
+  <p>Cuts break the time between the curves, so each curve needs its own real time (${m.tz}). Enter the clock time at the loudest moment of the curve
+  (the audio second shown). The suggested value assumes no cut happened before it - correct it if one did. Format HH:MM:SS (or YYYY-MM-DD HH:MM:SS).</p>
+  <table><tr><th>Curve</th><th>Audio second of its peak</th><th>Real clock time</th><th>&plusmn; seconds</th></tr>` +
+  m.curves.map(c => `<tr><td>${c.index}</td><td>${c.tau.toFixed(1)}</td><td><input id="ct${c.index}" size=19 value="${c.suggested}"></td><td><input id="tl${c.index}" size=3 value="${m.tolerance}"></td></tr>`).join("") +
+  `</table><button id="go">Continue</button> <button id="stop">Stop</button>`;
+  $("go").onclick = () => send({times: m.curves.map(c => $("ct" + c.index).value), tolerances: m.curves.map(c => +$("tl" + c.index).value)});
+  $("stop").onclick = () => send({cancel: true});
+}
+
+/* ---------- results + map ---------- */
+function drawMap(el, rows, bbox, paths) {
+  if (typeof L === "undefined") { el.innerHTML = "<p>(The map needs the Leaflet library from the internet, which could not load. Use the coordinates and links below.)</p>"; return; }
+  if (theMap) { theMap.remove(); theMap = null; }
+  el.style.height = "430px"; el.style.width = "100%";
+  theMap = L.map(el);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"}).addTo(theMap);
+  if (bbox) L.rectangle([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {color: "gray", weight: 1, fill: false}).addTo(theMap);
+  const pts = [];
+  Object.values(paths || {}).forEach(p => { if (p.length > 1) { L.polyline(p, {color: "#08f", weight: 2, dashArray: "4 4"}).addTo(theMap); p.forEach(x => pts.push(x)); } });
+  rows.forEach(r => {
+    const col = r.rank === 1 ? "red" : (r.label === "plausible" || r.label.startsWith("along") ? "orange" : "blue");
+    L.circle([r.lat, r.lon], {radius: 150, color: col, weight: 1, fillOpacity: 0.08}).addTo(theMap);
+    L.circleMarker([r.lat, r.lon], {radius: 9, color: col, fillColor: col, fillOpacity: 0.7})
+      .bindTooltip(String(r.rank), {permanent: true, direction: "center"}).addTo(theMap)
+      .bindPopup(`#${r.rank} (${r.label})<br>${r.lat.toFixed(5)}, ${r.lon.toFixed(5)}<br>score ${r.score.toFixed(1)}`);
+    pts.push([r.lat, r.lon]);
+  });
+  if (pts.length > 1) theMap.fitBounds(pts, {padding: [30, 30]}); else if (pts.length) theMap.setView(pts[0], 15);
+  else theMap.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]]);
+}
+function coordList(rows) {
+  return "<pre>" + rows.map(r => `${r.rank}. ${r.lat.toFixed(5)}, ${r.lon.toFixed(5)}   (${r.label}, score ${r.score.toFixed(1)})`).join("\n") + "</pre>";
+}
+function resultTable(rows) {
+  return "<table border=1 cellpadding=3><tr><th>#</th><th>Latitude, longitude</th><th>How likely</th><th>Map links</th><th>Score</th><th>Flights</th><th>Clip started (estimated)</th></tr>" +
+    rows.map(r => `<tr><td>${r.rank}</td><td>${r.lat.toFixed(5)}, ${r.lon.toFixed(5)}</td><td>${r.label}</td>
+    <td><a target="_blank" href="https://www.google.com/maps?q=${r.lat},${r.lon}">Google</a> <a target="_blank" href="https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lon}#map=17/${r.lat}/${r.lon}">OSM</a> <a target="_blank" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${r.lat},${r.lon}">Street View</a></td>
+    <td>${r.score.toFixed(1)}${r.flight2 ? ` (${r.score1.toFixed(1)} + ${r.score2.toFixed(1)})` : ""}</td><td>${r.flight1}${r.flight2 ? "<br>" + r.flight2 : ""}</td><td>${r.start_local}<br>${r.start_utc}</td></tr>`).join("") + "</table>";
+}
+function overlays(rows, mode) {
+  let h = "<p>Green lines = predicted Doppler curve at each candidate. A correct location follows the bright curve closely" + (mode === "two" ? " in BOTH events." : ".") + "</p>";
+  for (let k = 0; k < Math.min(3, rows.length); k++) h += `<p>Candidate ${k + 1}:<br><img src="/api/job/${jobId}/overlay/${k}/0">` + (mode === "two" ? ` <img src="/api/job/${jobId}/overlay/${k}/1">` : "") + "</p>";
+  return h;
+}
+function drawScores(cv, pairs, best, mode) {
+  const g = cv.getContext("2d"), W = cv.width, H = cv.height, P = 34;
+  g.clearRect(0, 0, W, H); g.strokeStyle = "#000"; g.fillStyle = "#000"; g.strokeRect(P, 6, W - P - 6, H - P - 6);
+  if (!pairs.length) return;
+  if (mode === "two") {
+    const mx = Math.max(...pairs.map(p => p[0]), best.score1, 1) * 1.05, my = Math.max(...pairs.map(p => p[1]), best.score2, 1) * 1.05;
+    const X = v => P + v / mx * (W - P - 6), Y = v => H - P - v / my * (H - P - 6);
+    g.fillStyle = "#06c"; pairs.forEach(p => { g.beginPath(); g.arc(X(p[0]), Y(p[1]), 2.5, 0, 7); g.fill(); });
+    g.fillStyle = "red"; g.beginPath(); g.arc(X(best.score1), Y(best.score2), 5, 0, 7); g.fill();
+    g.fillStyle = "#000"; g.fillText("event 1 score", W / 2 - 25, H - 6); g.save(); g.translate(10, H / 2 + 25); g.rotate(-Math.PI / 2); g.fillText("event 2 score", 0, 0); g.restore();
+  } else {
+    const v = pairs.map(p => p[0]), mx = Math.max(...v, 1) * 1.02, bins = new Array(20).fill(0);
+    v.forEach(x => bins[Math.min(19, Math.floor(x / mx * 20))]++);
+    const mb = Math.max(...bins); g.fillStyle = "#06c";
+    bins.forEach((c, i) => g.fillRect(P + i * (W - P - 6) / 20, H - P - c / mb * (H - P - 12), (W - P - 6) / 20 - 1, c / mb * (H - P - 12)));
+    g.fillStyle = "red"; g.fillRect(P + best.score1 / mx * (W - P - 6) - 1, 6, 3, H - P - 6);
+    g.fillStyle = "#000"; g.fillText("best score per flight (right = better)", W / 2 - 80, H - 6);
+  }
+}
+function scoreBlock(r) {
+  if (!r.pairs || !r.pairs.length) return "";
+  return `<h3>How the candidates compare</h3><p>${r.mode === "two" ? "Each dot = best point for one pair of flights (event 1 score vs event 2 score). A real match stands out in the top right; red = best." :
+    "Each bar = how many flights reached that best score; red = best."} (${r.pairs.length} flights/pairs)</p><canvas id="scores" width="460" height="320"></canvas>`;
+}
+function heatBlock(r) {
+  if (!r.heat || !r.heat.length) return "";
+  return "<h3>Fine heat maps around the best spot (bright = better, cross = candidate, ~1.2 km each side)</h3><p>" +
+    r.heat.map(k => `<img src="/api/job/${jobId}/heat/${k}"> `).join("") + "</p>";
+}
+const oneNote = "<p class='infobox'><b>One curve was used.</b> That identifies the aircraft, but not which side of its path you were on, so candidates appear on BOTH sides of the dashed flight path (mirror images), spread along it by your clock tolerance. A second curve, or a tighter clock, resolves this.</p>";
+function showReview(m) {
+  const div = $("manual");
+  div.innerHTML = `<h3>Please review</h3><p>${m.message}</p>` + (m.rows.length ? `<div id="map2"></div>` + coordList(m.rows) + resultTable(m.rows) + overlays(m.rows, m.mode) : "") +
+    `<button id="ok">Accept these results</button>` + (m.can_retry ? ` <button id="retry">Search again with wider tolerances</button>
+    speed <input id="rs" size=4 value="0.45"> distance <input id="rd" size=4 value="0.6"> time offset (s) <input id="ro" size=4 value="15">` : "") + ` <button id="stop">Stop</button>`;
+  if (m.rows.length) drawMap($("map2"), m.rows, m.bbox, m.tracks);
+  $("ok").onclick = () => { if (theMap) { theMap.remove(); theMap = null; } send({}); }; $("stop").onclick = () => send({cancel: true});
+  if (m.can_retry) $("retry").onclick = () => { if (theMap) { theMap.remove(); theMap = null; } send({retry: {speed_tol: +$("rs").value, dist_tol: +$("rd").value, offset_tol_s: +$("ro").value}}); };
+}
+function showResult(r) {
+  if (!r || !r.rows.length) { $("result").innerHTML = "<h2>No result</h2>"; return; }
+  $("result").innerHTML = `<h2>Result: ${r.rows.length} possible location${r.rows.length > 1 ? "s" : ""}</h2>` + (r.mode === "one" ? oneNote : "") +
+    `<div id="map"></div>` + "<h3>Coordinates</h3>" + coordList(r.rows) + resultTable(r.rows) + scoreBlock(r) + heatBlock(r) + overlays(r.rows, r.mode) +
+    "<p><small>Red = best match. Estimates, not proof - verify visually (e.g. street view) before relying on them. Use responsibly.</small></p>";
+  drawMap($("map"), r.rows, r.bbox, r.tracks);
+  if ($("scores")) drawScores($("scores"), r.pairs, r.rows[0], r.mode);
+}
+</script>
+</body>
+</html>

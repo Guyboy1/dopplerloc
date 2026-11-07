@@ -1,0 +1,14 @@
+numpy
+scipy
+pandas
+pyarrow
+flask
+pillow
+tzdata            # time zone data (needed on Windows)
+imageio-ffmpeg    # bundles ffmpeg, so no separate ffmpeg install is needed
+certifi           # root certificates for HTTPS downloads
+truststore        # uses your operating system's certificate store (fixes most 'certificate verify failed' errors)
+# optional:
+# rasterio        # only if you use your own elevation GeoTIFF
+# pyopensky       # only for the OpenSky data source
+orjson            # optional: makes reading the adsb.lol archives several times faster (the program also works without it)

@@ -1,0 +1,40 @@
+dopplerloc - third-party data, services and software
+=====================================================
+The dopplerloc program code is licensed under the licence in the LICENSE file. The items below are NOT covered by that
+licence: each keeps its own terms. Credits are repeated in README.md and at the bottom of the web page.
+
+BUNDLED DATA (dopplerloc/data/, see dopplerloc/data/DATA_LICENSES.md)
+- Places (countries, states, cities): dr5hn/countries-states-cities-database, Open Database Licence (ODbL) 1.0,
+  https://github.com/dr5hn/countries-states-cities-database ; and GeoNames, Creative Commons Attribution 4.0,
+  https://www.geonames.org (read through the `geonamescache` package).
+- Country bounding boxes: sandstrom/country-bounding-boxes, built from Natural Earth (public domain),
+  https://github.com/sandstrom/country-bounding-boxes
+- Time zones per country: IANA time zone database (zone.tab), public domain.
+- Aircraft engine types (typecodes.csv): derived from Berkanktk/datasets `all_aircrafts.csv` (https://github.com/Berkanktk/datasets),
+  which is based on ICAO Doc 8643 aircraft type designators. That repository is MIT-licensed for the project itself, and states that
+  its aircraft data is "per source license" (ICAO Doc 8643). The file here keeps only three facts per type designator (code, engine
+  type, class). ICAO Doc 8643 remains the original source; check ICAO's terms before redistributing or using it commercially.
+
+DATA DOWNLOADED WHEN YOU RUN THE PROGRAM (not included in this package)
+- Flight history: adsb.lol "globe_history" daily archives, Open Database Licence (ODbL) 1.0,
+  https://www.adsb.lol/docs/open-data/historical/ . Contains data from adsb.lol feeders and friends. If you publish a database or
+  results derived from it, give attribution and check the ODbL share-alike terms.
+- Flight history (optional): OpenSky Network, https://opensky-network.org , via the `pyopensky` library. Use is subject to OpenSky's
+  terms (access to historical data is restricted, mainly to research, government and aviation authorities). If you publish results
+  that use OpenSky data, follow OpenSky's citation guidance on their website.
+- Aircraft registry / type list: wiedehopf/tar1090-db, https://github.com/wiedehopf/tar1090-db (see its repository for licence terms).
+- Elevation: Terrain Tiles on AWS (Terrarium format), https://registry.opendata.aws/terrain-tiles/ . Attribution is required. The tiles are
+  built from 3DEP, SRTM and GMTED2010 data courtesy of the U.S. Geological Survey, ETOPO1 (NOAA), and national sources including
+  Copernicus EU-DEM (produced using Copernicus data and information funded by the European Union), Geoscience Australia, Land
+  Information New Zealand, INEGI (Mexico), Environment Agency (UK), Open Government Licence - Canada, Kartverket (Norway) and
+  ArcticDEM. Full list: https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+- Map tiles: (c) OpenStreetMap contributors, ODbL, https://www.openstreetmap.org/copyright . Follow the OSM tile usage policy.
+
+LIBRARIES AND SERVICES USED BY THE PAGE
+- Leaflet (BSD-2-Clause), https://leafletjs.com
+- Inter font (SIL Open Font Licence 1.1), loaded from Google Fonts
+- Python packages: numpy, scipy, pandas, pyarrow, Flask, Pillow, tzdata, certifi, truststore, orjson (each under its own licence;
+  see their packages); imageio-ffmpeg downloads an FFmpeg build (FFmpeg is LGPL/GPL, https://ffmpeg.org); exiftool (optional,
+  https://exiftool.org); pyopensky (optional, see its repository for licence).
+
+This file is a good-faith summary, not legal advice. Check the original licences before you redistribute data.
