@@ -24,13 +24,13 @@ analyse. Do not use this to find, follow, or identify people without their conse
   roughly which area and time you are looking at, but not your recording. The Google and Street View links only open when you click them and contain only coordinates.
 - **Your responsibility.** Only analyse recordings you made or have permission to analyse; see "Responsible use" above.
 
+## AI Use
+- I like to include AI disclaimers on my repositories. AI was used in the creation of this code. This does not mean it is all AI. Planning, reasoning, pseudocode and a coded draft version of the project was done by me. Then it was improved using AI. 
+
 ## Methodology
 - Determine the location where an audio or video recording was made by analyzing hidden Doppler signatures of aircraft within the audio material and cross-referencing them with historical ADS-B flight tracking data. The software automatically detects Doppler curves from passing aircraft, reconstructs their flight paths, and compares these acoustic patterns against recorded flight movements to narrow down the geographic location of the recording. It integrates audio signal processing, flight path modeling, terrain data, and various filtering and evaluation techniques to identify potential recording locations. 
 
 - Huge credit to youtuber colsto for figuring out this methodology, his video is very high-quality and goes into depth about how he figured this out: https://www.youtube.com/watch?v=UytYrhYLOKI. I would also recommend his other videos, they are all very entertaining and interesting. This project was made for fun, after watching his video I wanted to create my own simmilar program. 
-
-## AI Use
-- I like to include AI disclaimers on my repositories. AI was used in the creation of this code. This does not mean it is all AI. Planning, reasoning, pseudocode and a coded draft version of the project was done by me. Then it was improved using AI. 
 
 ## What it can and cannot do (compared with the full setup in the video)
 | Scenario | Video's full setup | This program | Limits here |
